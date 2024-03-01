@@ -1,0 +1,69 @@
+-- Besides the creation and annihilation operators
+-- there are many standard operators defined
+-- see
+-- http://quanty.org/documentation/standard_operators/start
+-- for a full list and description of these operators
+-- The standard operators are written in second quantisation
+-- and implemented as a sum over creation and annihilation operators
+--
+-- They input format for all follow the same basic idea as outlined here
+
+-- A basis consists of:
+ -- a number of Fermionic modes or spin-orbitals
+NF=6;
+ -- a number of Bosonic modes (phonon modes, ...)
+NB=0;
+ -- an index relating the spinorbitals to quantum 
+ -- numbers we assign to them.  For a p-shell we would
+ -- like the have 6 spinorbitals with the quantum
+ -- numbers spin up ml=-1,ml=0,ml=1 and spin down
+ -- with ml=-1, ml=0, ml=1
+IndexDn={0,2,4};
+IndexUp={1,3,5};
+-- the code knows that a 3 fold degenerate shell 
+-- has l=1 and ml=-1, 0 and 1 are assigned to 
+-- them automatically
+ 
+-- we can now create the spin operators on this basis
+OppSx=NewOperator("Sx",NF,IndexUp,IndexDn);
+OppSy=NewOperator("Sy",NF,IndexUp,IndexDn);
+OppSz=NewOperator("Sz",NF,IndexUp,IndexDn);
+ 
+-- and print them
+print("Operator in second quantization")
+print(OppSx)
+print("Operator as matrix on a one particle basis")
+print(OperatorToMatrix(OppSx))
+
+print("Operator in second quantization")
+print(OppSy)
+print("Operator as matrix on a one particle basis")
+print(OperatorToMatrix(OppSy))
+
+print("Operator in second quantization")
+print(OppSz)
+print("Operator as matrix on a one particle basis")
+print(OperatorToMatrix(OppSz))
+
+ 
+print("=================================");
+-- the spin operators commute such that 
+-- Sx * Sy - Sy * Sx = I Sz. This can easily be 
+-- checked by multiplying operators
+OppNill = OppSx * OppSy - OppSy * OppSx - I * OppSz;
+ 
+-- OppNill should be a zero operator
+print(OppNill)
+ 
+-- Printing indeed showed only zero's, but the are 
+-- still stored. The above equation should return
+-- an operator of lenght zero. in order to remove
+-- small values from the operator one can chop these
+OppNill=Chop(OppNill);
+ 
+-- secondly the name of the operator is a generic 
+-- "operator". Not so nice, so lets set the name
+OppNill.Name = "Sx * Sy - Sy * Sx - I Sz";
+ 
+-- now we can print again.
+print(OppNill)

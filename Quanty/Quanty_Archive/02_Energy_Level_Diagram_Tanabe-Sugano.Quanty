@@ -1,0 +1,207 @@
+-- The crystal field parameters vary from material to material. If we have several
+-- compounds with a Ni atom in Oh cubic point-group than these systems can all be
+-- described by the same model Hamiltonian, albeit with a different value for the
+-- size of the cristal field. In Oh symmetry that is one parameter. It is thus useful
+-- to have a look at the eigen-states and eigen energies as a function of the size
+-- of the crystal field parameter.
+
+-- We minimize the output of the program, i.e. for longer calculations
+-- the program tells the user what it is doing. For these short
+-- examples the result is instant.
+Verbosity(0)
+
+-- In this example we will calculate the Sugano Tanabe diagrams for a d1 to d9 system
+-- We will take F[2]=10 and F[4]=6.25, which are generic values that are roughly ok
+-- for the average of the TM 3d elements. 
+
+-- We first define our orbital basis
+NFermion=10               
+NBoson=0                  
+IndexDn_3d={0,2,4,6,8}        
+IndexUp_3d={1,3,5,7,9}          
+
+-- function to print Term symbols
+function LSJ2term (S2,L2,J2)
+  L = math.floor(0.5 * (math.sqrt(math.abs(L2) * 4 +1) - 1) + 0.5)
+  if     L == 0   then str1="S"
+  elseif L == 1   then str1="P"
+  elseif L == 2   then str1="D"
+  elseif L == 3   then str1="F"
+  elseif L == 4   then str1="G"
+  elseif L == 5   then str1="H"
+  elseif L == 6   then str1="I"
+  elseif L == 7   then str1="K"
+  elseif L == 8   then str1="L"
+  elseif L == 9   then str1="M"
+  elseif L == 10  then str1="N"
+  elseif L == 11  then str1="O"
+  elseif L == 12  then str1="Q"
+  elseif L == 13  then str1="R"
+  elseif L == 14  then str1="T"
+  elseif L == 15  then str1="U"
+  elseif L == 16  then str1="V"
+  elseif L == 17  then str1="W"
+  elseif L == 18  then str1="X"
+  elseif L == 19  then str1="Y"
+  elseif L == 20  then str1="Z"
+  else 
+    str1="?"
+  end
+  mult = math.floor(math.sqrt(S2 * 4 +1)+0.5)
+  twoJ = math.floor((math.sqrt(math.abs(J2) * 4 +1) - 1) + 0.5)
+  return "^{"..mult.."}"..str1
+end
+
+-- Here we define the operators in the space of chosen orbitals
+
+OppSx   =NewOperator("Sx"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppSy   =NewOperator("Sy"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppSz   =NewOperator("Sz"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppSsqr =NewOperator("Ssqr" ,NFermion, IndexUp_3d, IndexDn_3d)
+OppSplus=NewOperator("Splus",NFermion, IndexUp_3d, IndexDn_3d)
+OppSmin =NewOperator("Smin" ,NFermion, IndexUp_3d, IndexDn_3d)
+
+OppLx   =NewOperator("Lx"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppLy   =NewOperator("Ly"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppLz   =NewOperator("Lz"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppLsqr =NewOperator("Lsqr" ,NFermion, IndexUp_3d, IndexDn_3d)
+OppLplus=NewOperator("Lplus",NFermion, IndexUp_3d, IndexDn_3d)
+OppLmin =NewOperator("Lmin" ,NFermion, IndexUp_3d, IndexDn_3d)
+
+OppJx   =NewOperator("Jx"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppJy   =NewOperator("Jy"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppJz   =NewOperator("Jz"   ,NFermion, IndexUp_3d, IndexDn_3d)
+OppJsqr =NewOperator("Jsqr" ,NFermion, IndexUp_3d, IndexDn_3d)
+OppJplus=NewOperator("Jplus",NFermion, IndexUp_3d, IndexDn_3d)
+OppJmin =NewOperator("Jmin" ,NFermion, IndexUp_3d, IndexDn_3d)
+
+-- Spin-orbit coupling
+Oppldots=NewOperator("ldots",NFermion, IndexUp_3d, IndexDn_3d)
+
+-- e-e Coulomb repulsion
+OppF0 =NewOperator("U", NFermion, IndexUp_3d, IndexDn_3d, {1,0,0})
+OppF2 =NewOperator("U", NFermion, IndexUp_3d, IndexDn_3d, {0,1,0})
+OppF4 =NewOperator("U", NFermion, IndexUp_3d, IndexDn_3d, {0,0,1})
+
+-- Expansion of the effective electron-ion potential in the certain symmetry ("Oh" group in this case)
+-- This operator splits the states: it lowers one manifold on 0.4 [e.u.] and lifts the other on 0.6 [e.u.]
+-- in the limit of very strong CF we can call these manifolds as T2g and Eg
+Akm = PotentialExpandedOnClm("Oh", 2, {0.6,-0.4})
+OpptenDq = NewOperator("CF", NFermion, IndexUp_3d, IndexDn_3d, Akm)
+
+-- We can define the operator which will count the number of particles in each manifold
+Akm = PotentialExpandedOnClm("Oh", 2, {1,0})
+OppNeg = NewOperator("CF", NFermion, IndexUp_3d, IndexDn_3d, Akm)
+Akm = PotentialExpandedOnClm("Oh", 2, {0,1})
+OppNt2g = NewOperator("CF", NFermion, IndexUp_3d, IndexDn_3d, Akm)
+
+-- set some generic parameters
+U       =  0
+F2dd    = 10 
+F4dd    =  6.25
+F0dd    = U+(F2dd+F4dd)*2/63
+Bz      = 0.000001
+
+-- Setting up the initial Hamiltonian in the 2nd quantised form
+-- Note: here we do not have the CF
+Hamiltonian0 = F0dd*OppF0 + F2dd*OppF2 + F4dd*OppF4 + Bz*(2*OppSz + OppLz);
+Hamiltonian1 = OpptenDq
+
+-- we now loop over nd from 1 to 9
+for nd=1,9 do
+  -- find the ground-state of Hamiltonian0
+  StartRestrictions = {NFermion, NBoson,  {"1111111111",nd,nd}}
+  Npsi = Binomial(10,nd)
+  psiList = Eigensystem(Hamiltonian0, StartRestrictions, Npsi)
+  
+  TermSymbol={} ; TermSymbol[0]=""; E0={} ;E0[0]=0
+  for i =1,Npsi do
+    S2=psiList[i] * OppSsqr * psiList[i]
+    L2=psiList[i] * OppLsqr * psiList[i]
+    J2=psiList[i] * OppJsqr * psiList[i]
+    E0[i]=psiList[i] * Hamiltonian0 * psiList[i]
+    TermSymbol[i]=LSJ2term(S2,L2,J2)
+  end
+
+  filenameroot    = "EnergyLevelDiagram_d"..nd
+  datafilename    = filenameroot..".dat"
+  gnuplotfilename = filenameroot..".gnuplot"
+  psfilename      = filenameroot..".ps"
+
+  -- Open up the file, where the data will be stored
+  file = assert(io.open(datafilename, "w"))
+
+  print("================",nd)
+  print("--> Adding the Crystal field as a perturbation: H' = H0 + x * H_CF")
+  print("--> start increasing x ...")
+  io.write("10Dq = ")
+  -- We add the CF to the Hamiltonian and start varying its strength. Each time we update the H, we re-diagonalise it.
+  for i=0, 300 do
+    tenDq = 0.01*i
+    file:write(string.format("%14.7E ",tenDq))
+    io.write(string.format("%5.3f ",tenDq))
+    io.flush()
+    Hamiltonian=Hamiltonian0 + tenDq * Hamiltonian1
+    Eigensystem(Hamiltonian, psiList)
+    
+    energylist = BraketDiagonal(psiList,Hamiltonian,psiList)
+    Ssqrlist   = BraketDiagonal(psiList,OppSsqr,psiList)
+    
+    for j=1,Npsi do
+      file:write(string.format("%14.7E ",energylist[j]))
+      -- besides the energy we give one additional expectation value
+      -- Here we take this to be the total spin S, but any other operator used for the Color
+      -- can be taken
+      -- We want to change the Color according to S and not S^2, whereby S is not necessarily integer
+      S = 0.5 * (math.sqrt(math.abs(Ssqrlist[j]) * 4 +1) - 1)
+      file:write(string.format("%14.7E ",S))
+    end
+    file:write("\n")
+  end
+  file:close()
+  io.write("\n")
+
+  -- The output will be supplied to the gnuplot for consequent visualisation
+  -- Starting the preparation of the gnuplot-input file
+
+gnuplotInput = [[
+set terminal postscript portrait enhanced color  "Times" 12
+set autoscale                          # scale axes automatically
+set xtic auto                          # set xtics automatically
+set ytic auto                          # set ytics automatically
+set palette defined ( 0 "#FF0000", 0.5 "#FF00FF", 1 "#0000FF", 1.5 "#00FFFF", 2 "#00FF00", 2.5 "#FFFF00" )
+set cbrange [0:2.5]
+
+set xlabel "10Dq (eV)" font "Times,12"
+set ylabel "Energy (eV)" font "Times,12" offset -3
+
+set out ']]..psfilename..[['
+set size 1.0, 0.625
+]]
+
+  -- write the gnuplot script to a file
+  file = io.open(gnuplotfilename, "w")
+  file:write(gnuplotInput)
+
+  for i=1,Npsi do
+    if (abs(E0[i]-E0[i-1]) > 0.1 and TermSymbol[i] ~= TermSymbol[i-1]) then
+  	  file:write("set label \""..TermSymbol[i].."\" at  -0.3,",E0[i]," font \"Times,14\"\n")
+    end 
+  end
+
+gnuplotInput=[[
+plot for [i=2:]]..2*Npsi..[[:2] "]]..datafilename..[[" using 1:i:i+1 notitle with lines lc palette z
+]]
+
+  file:write(gnuplotInput)
+  file:close()
+
+  -- call gnuplot to execute the script
+  os.execute("gnuplot "..gnuplotfilename.." ; ps2pdf "..psfilename)
+
+end
+
+
+
+
+
