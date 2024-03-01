@@ -1,0 +1,4 @@
+-con los datos de EDS solo se corrobora lo encontrado para XRF?
+-diferencia entre K_alpha1 y K_alpha2
+-se identifican los elementos solo mirando la tabla? o Quanty-tativamente?
+-
