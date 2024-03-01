@@ -54,7 +54,7 @@ OppNill = OppSx * OppSy - OppSy * OppSx - I * OppSz;
  
 -- OppNill should be a zero operator
 print(OppNill)
- 
+ print(OperatorToMatrix(OppNill))
 -- Printing indeed showed only zero's, but the are 
 -- still stored. The above equation should return
 -- an operator of lenght zero. in order to remove
@@ -67,3 +67,4 @@ OppNill.Name = "Sx * Sy - Sy * Sx - I Sz";
  
 -- now we can print again.
 print(OppNill)
+ print(OperatorToMatrix(OppNill))
